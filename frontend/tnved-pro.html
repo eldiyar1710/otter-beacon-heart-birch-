@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ТН ВЭД Pro — AI · Дерево · Платежи</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070b14;--bg2:#0d1320;--surface:#151c2c;--surface2:#1c2638;--border:#2a3548;--text:#eef2f8;--muted:#8494ad;--accent:#4f8cff;--accent2:#7eb0ff;--green:#3dd68c;--amber:#f5c84c;--radius:16px}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+.app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:64px 1fr;height:100vh}
+@media(max-width:960px){.app{grid-template-columns:1fr;grid-template-rows:64px auto 1fr}.sidebar{max-height:32vh}}
+.header{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:0 18px;background:rgba(13,19,32,.92);border-bottom:1px solid var(--border)}
+.logo{font-weight:700;font-size:1.12rem;display:flex;align-items:center;gap:8px}
+.logo .mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#4f8cff,#a78bfa);display:grid;place-items:center}
+.logo span{background:linear-gradient(135deg,#7eb0ff,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.search-wrap{flex:1;max-width:480px;position:relative}
+.search-wrap input{width:100%;padding:10px 14px 10px 40px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);outline:none}
+.search-wrap::before{content:"⌕";position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.82rem;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;color:#fff}
+.status-pill{font-size:.72rem;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted)}.status-pill.on{color:var(--green)}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:12px 10px}
+.sidebar h3{font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:6px 10px 8px}
+.tree-item{padding:8px 10px;border-radius:10px;cursor:pointer;font-size:.8rem;color:var(--muted);display:flex;gap:8px;margin-bottom:2px}
+.tree-item:hover,.tree-item.active{background:rgba(79,140,255,.14);color:var(--accent2)}
+.tree-item .num{font-weight:700;color:var(--accent2);min-width:28px}
+.main{overflow-y:auto;padding:22px;background:radial-gradient(ellipse 80% 50% at 50% -10%,#1a2744,var(--bg) 55%)}
+.hero h1{font-size:1.5rem;font-weight:700;margin-bottom:4px}.hero p{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+.grid{display:grid;grid-template-columns:1fr 370px;gap:18px}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.card h2{font-size:.95rem;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.chat{height:200px;overflow-y:auto;background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:10px;border:1px solid var(--border)}
+.msg{margin-bottom:10px;padding:10px 12px;border-radius:12px;font-size:.85rem;max-width:95%}
+.msg.bot{background:var(--surface2)}.msg.user{background:rgba(79,140,255,.18);margin-left:auto;text-align:right}
+.chat-input{display:flex;gap:8px}
+.chat-input input{flex:1;padding:11px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);outline:none}
+.chip{padding:5px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:.72rem;cursor:pointer;color:var(--muted);margin-right:5px}
+.clarify{margin-top:12px;padding:14px;background:var(--bg2);border-radius:12px;border:1px solid var(--border)}
+.clarify h4{font-size:.8rem;color:var(--muted);margin-bottom:10px}
+.check-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:4px}
+.check-row:hover{background:var(--surface)}
+.check-row input{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+.check-row span{font-size:.85rem}
+.clarify-actions{display:flex;gap:8px;margin-top:12px}
+.code-row{padding:11px 12px;border-radius:10px;cursor:pointer;margin-bottom:4px}
+.code-row:hover{background:var(--surface2)}
+.code-row .code{font-family:monospace;font-weight:600;color:var(--accent2)}
+.code-row .name{font-size:.8rem;color:var(--muted)}
+.code-row .meta{font-size:.72rem;color:var(--green)}
+.confidence{padding:1px 6px;border-radius:4px;font-size:.68rem;background:rgba(61,214,140,.12);color:var(--green);margin-left:6px}
+.receipt{background:linear-gradient(165deg,#1a2438,#0f1624);border:1px solid var(--border);border-radius:16px;padding:20px}
+.receipt h3{text-align:center;font-size:.95rem}.receipt .sub{text-align:center;font-size:.7rem;color:var(--muted);margin:4px 0 14px}
+.receipt .line{border-top:1px dashed var(--border);margin:10px 0}
+.receipt .row{display:flex;justify-content:space-between;padding:8px 0;font-size:.88rem}
+.receipt .row.total{font-weight:700;font-size:1.12rem;color:var(--green)}
+.receipt .note{margin-top:12px;font-size:.72rem;color:var(--muted)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+label{display:block;font-size:.68rem;color:var(--muted);margin-bottom:3px}
+input,select{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:.85rem}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--muted);font-size:.85rem}
+.upload-zone input{display:none}.badge{padding:2px 8px;border-radius:6px;font-size:.68rem;background:rgba(79,140,255,.18);color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<div class="logo"><div class="mark">◈</div> <span>ТН ВЭД Pro</span></div>
+<div class="search-wrap"><input id="globalSearch" placeholder="Код или название..." oninput="onSearch()"></div>
+<div class="header-actions">
+<span class="status-pill" id="dbStatus">демо</span>
+<button class="btn" onclick="toggleUpload()">Excel</button>
+<button class="btn btn-primary" onclick="document.getElementById('aiInput').focus()">AI</button>
+</div>
+</header>
+<aside class="sidebar"><h3>Дерево ТН ВЭД ЕАЭС</h3><div id="tree"></div></aside>
+<main class="main">
+<div class="hero"><h1>Продвинутый классификатор</h1>
+<p>Клон tnved.info + AI с уточнением <b>галочками</b> · ставки · платежи · Excel</p></div>
+<div class="grid">
+<div>
+<div class="card">
+<h2><span class="dot"></span> AI-классификатор</h2>
+<div class="chat" id="chat"></div>
+<div id="clarifyBox" style="display:none"></div>
+<div class="chat-input" id="chatInputRow">
+<input id="aiInput" placeholder="Опишите товар..." onkeydown="if(event.key==='Enter')aiSend()">
+<button class="btn btn-primary" onclick="aiSend()">Отправить</button>
+</div>
+<div style="margin-top:10px">
+<span class="chip" onclick="aiExample('chips')">Чипсы</span>
+<span class="chip" onclick="aiExample('broth')">Бульон</span>
+<span class="chip" onclick="aiExample('coffee')">Кофе</span>
+</div>
+</div>
+<div class="card">
+<h2><span class="dot" style="background:var(--green)"></span> Коды <span id="listCount" style="color:var(--muted);font-weight:400"></span></h2>
+<div id="codeList"></div>
+</div>
+<div class="card" id="uploadPanel" style="display:none">
+<h2>Excel база</h2>
+<p style="font-size:.8rem;color:var(--muted);margin-bottom:10px"><a href="https://www.tws.by/tws/tnved/download" style="color:var(--accent2)" target="_blank">tws.by</a></p>
+<div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">📄 tnved.xlsx<input type="file" id="fileInput" accept=".xlsx,.xls,.csv"></div>
+<div id="uploadMsg" style="margin-top:8px;font-size:.8rem"></div>
+</div>
+</div>
+<div>
+<div class="card">
+<h2><span class="dot" style="background:var(--amber)"></span> Калькулятор</h2>
+<div class="form-row"><div><label>Код</label><input id="codeInput" placeholder="2005202000"></div>
+<div><label>Стоимость</label><input id="valueInput" type="number" placeholder="3500000"></div></div>
+<div class="form-row"><div><label>Вес кг</label><input id="weightInput" type="number" placeholder="500"></div>
+<div><label>Валюта</label><select id="currencySelect"><option value="KZT">₸</option><option value="RUB">₽</option></select></div></div>
+<div class="form-row"><div><label>Страна</label><select id="countrySelect"><option value="OTHER">Третья</option><option value="EAEU">ЕАЭС</option><option value="CIS">СНГ</option></select></div>
+<div><label>НДС</label><select id="vatSelect"><option value="10">10%</option><option value="20">20%</option><option value="0">0%</option></select></div></div>
+<button class="btn btn-primary" style="width:100%;margin-top:8px;padding:12px" onclick="calculate()">Рассчитать</button>
+</div>
+<div id="receiptBox"></div>
+<div id="codeDetail"></div>
+</div>
+</div>
+</main>
+</div>
+<script>
+const SECTIONS=[{n:"I",r:"01-05",t:"Животные; продукты животные"},{n:"II",r:"06-14",t:"Растительные продукты"},{n:"III",r:"15",t:"Жиры и масла"},{n:"IV",r:"16-24",t:"Пища; напитки; табак"},{n:"V",r:"25-27",t:"Минералы"},{n:"VI",r:"28-38",t:"Химия"},{n:"VII",r:"39-40",t:"Пластмассы; каучук"},{n:"VIII",r:"41-43",t:"Кожа; меха"},{n:"IX",r:"44-46",t:"Древесина"},{n:"X",r:"47-49",t:"Бумага"},{n:"XI",r:"50-63",t:"Текстиль"},{n:"XII",r:"64-67",t:"Обувь"},{n:"XIII",r:"68-70",t:"Камень; стекло"},{n:"XIV",r:"71",t:"Драгоценности"},{n:"XV",r:"72-83",t:"Металлы"},{n:"XVI",r:"84-85",t:"Машины"},{n:"XVII",r:"86-89",t:"Транспорт"},{n:"XVIII",r:"90-92",t:"Оптика"},{n:"XIX",r:"93",t:"Оружие"},{n:"XX",r:"94-96",t:"Мебель; игрушки"},{n:"XXI",r:"97",t:"Искусство"}];
+const DEMO=[{code:"2005202000",name:"Чипсы/криспы картофельные",rate:"15%",rateType:"advalorem",rateValue:15,vat:10,tags:["чипсы","криспы"]},{code:"1905905500",name:"Экструдированные снеки",rate:"15%",rateType:"advalorem",rateValue:15,vat:10,tags:["чипсы","экструд"]},{code:"1905100000",name:"Хрустящие хлебцы",rate:"15%",rateType:"combined",rateValue:15,specific:0.15,vat:10,tags:["хлебцы"]},{code:"2104100000",name:"Супы и бульоны",rate:"15%",rateType:"advalorem",rateValue:15,vat:10,tags:["бульон","суп"]},{code:"0901210000",name:"Кофе жареный",rate:"10%",rateType:"advalorem",rateValue:10,vat:20,tags:["кофе"]},{code:"8470100000",name:"Калькуляторы",rate:"0%",rateType:"advalorem",rateValue:0,vat:20,tags:["калькулятор"]}];
+let DB=[...DEMO];
+let aiState={product:"",value:0,weight:0,candidates:[],pendingChecks:null};
+function fee(v,c){if(c==="RUB"){if(v<=200000)return 1231;if(v<=450000)return 2462;if(v<=1200000)return 4924;return 13541}if(v<=500000)return 5000;if(v<=2000000)return 15000;if(v<=5000000)return 25950;return 45000}
+function sym(){return document.getElementById("currencySelect").value==="RUB"?"₽":"₸"}
+function money(n){return Math.round(n).toLocaleString("ru-RU")+" "+sym()}
+function buildTree(){document.getElementById("tree").innerHTML=SECTIONS.map(s=>`<div class="tree-item" onclick="selectSection('${s.r}',this)"><span class="num">${s.n}</span><span class="label">${s.t}<br><span style="opacity:.45;font-size:.72rem">${s.r}</span></span></div>`).join("")}
+function selectSection(range,node){document.querySelectorAll(".tree-item").forEach(t=>t.classList.remove("active"));node&&node.classList.add("active");const[a,b]=range.includes("-")?range.split("-"):[range,range];const f=a.padStart(2,"0"),t=b.padStart(2,"0");renderList(DB.filter(i=>{const c=i.code.slice(0,2);return c>=f&&c<=t}))}
+function renderList(items){document.getElementById("listCount").textContent="("+items.length+")";document.getElementById("codeList").innerHTML=items.length?items.slice(0,80).map(i=>`<div class="code-row" onclick="pickCode('${i.code}')"><div class="code">${i.code}</div><div class="name">${i.name}</div><div class="meta">${i.rate} · НДС ${i.vat}%</div></div>`).join(""):'<p style="color:var(--muted);font-size:.85rem">Нет кодов</p>'}
+function pickCode(code){document.getElementById("codeInput").value=code;const item=DB.find(x=>x.code===code);if(item){document.getElementById("vatSelect").value=item.vat;document.getElementById("codeDetail").innerHTML=`<div class="card"><h2>Справка</h2><span class="badge">${item.code}</span><p style="margin:8px 0;font-size:.88rem">${item.name}</p><p style="font-size:.82rem;color:var(--muted)">${item.rate} · НДС ${item.vat}%</p></div>`}}
+function onSearch(){const q=document.getElementById("globalSearch").value.toLowerCase().trim();renderList(!q?DB.slice(0,40):DB.filter(i=>i.code.includes(q)||(i.name||"").toLowerCase().includes(q)||(i.tags||[]).some(t=>t.includes(q))))}
+function calculate(){const code=document.getElementById("codeInput").value.replace(/\s/g,"");const value=+document.getElementById("valueInput").value||0;const weight=+document.getElementById("weightInput").value||0;const country=document.getElementById("countrySelect").value;const vatRate=+document.getElementById("vatSelect").value||20;const cur=document.getElementById("currencySelect").value;if(!code||value<=0){alert("Код и стоимость");return}const item=DB.find(x=>x.code===code||x.code.startsWith(code));let duty=0;if(country==="EAEU")duty=0;else if(item&&item.rateType==="advalorem")duty=value*(item.rateValue/100);else if(item&&item.rateType==="combined")duty=Math.max(value*(item.rateValue/100),(item.specific||0)*weight*500);else duty=value*0.15;const f=fee(value,cur);const vat=(value+duty+f)*(vatRate/100);const total=duty+f+vat;document.getElementById("receiptBox").innerHTML=`<div class="receipt"><h3>Таможенные платежи и налоги</h3><div class="sub">код ${code}</div><div class="line"></div><div class="row"><span>Таможенный сбор</span><span>${money(f)}</span></div><div class="row"><span>Импортная пошлина</span><span>${money(duty)}</span></div><div class="row"><span>НДС</span><span>${money(vat)}</span></div><div class="row total"><span>ИТОГО*:</span><span>${money(total)}</span></div><div class="note">* Базовый расчёт. Возможны доп. тарифные меры и преференции.</div></div>`;if(item)pickCode(item.code)}
+function aiMsg(r,h){const c=document.getElementById("chat");const d=document.createElement("div");d.className="msg "+r;d.innerHTML=h;c.appendChild(d);c.scrollTop=c.scrollHeight}
+function aiReset(){document.getElementById("chat").innerHTML="";document.getElementById("clarifyBox").style.display="none";document.getElementById("chatInputRow").style.display="flex";aiState={product:"",value:0,weight:0,candidates:[],pendingChecks:null};aiMsg("bot","Опишите товар. Уточнения — только <b>галочками</b>.")}
+function aiExample(t){const m={chips:"Картофельные чипсы обжаренные",broth:"Сухой куриный бульон",coffee:"Кофе жареный в зёрнах"};document.getElementById("aiInput").value=m[t];aiSend()}
+function findCandidates(text){const t=text.toLowerCase();return DB.map(item=>{let s=0;const n=(item.name||"").toLowerCase();const tags=item.tags||[];t.split(/[\s,.;]+/).filter(w=>w.length>2).forEach(w=>{if(n.includes(w))s+=3;if(tags.some(tg=>tg.includes(w)||w.includes(tg)))s+=4});if(/чип|крисп|chips/.test(t)&&/чип|экструд|2005|1905/.test(n+item.code))s+=6;if(/бульон|суп/.test(t)&&/бульон|суп|2104/.test(n+item.code))s+=6;if(/кофе/.test(t)&&/кофе|0901/.test(n+item.code))s+=6;return{s,item}}).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,5).map(x=>({...x.item,confidence:Math.min(0.97,0.55+x.s*0.06)}))}
+function showClarify(candidates,needValue,needWeight,needForm){const box=document.getElementById("clarifyBox");box.style.display="block";document.getElementById("chatInputRow").style.display="none";let html='<div class="clarify"><h4>Уточните галочками</h4>';if(candidates.length>1){html+='<div style="margin-bottom:8px;font-size:.75rem;color:var(--muted)">Какой код?</div>';candidates.forEach((c,i)=>{html+=`<label class="check-row"><input type="checkbox" name="codePick" value="${c.code}" ${i===0?"checked":""}><span><code style="color:var(--accent2)">${c.code}</code> — ${c.name.slice(0,48)} <span class="confidence">${Math.round(c.confidence*100)}%</span></span></label>`})}if(needForm){html+='<div style="margin:10px 0 6px;font-size:.75rem;color:var(--muted)">Форма</div>';["Обжаренный / готовый","Сырой / полуфабрикат","Упаковка для розницы","Насыпью"].forEach(lab=>{html+=`<label class="check-row"><input type="checkbox" name="formPick" value="${lab}"><span>${lab}</span></label>`})}if(needValue||needWeight){html+='<div style="margin:10px 0 6px;font-size:.75rem;color:var(--muted)">Партия</div>';if(needValue)[["до 500 тыс","500000"],["0.5–2 млн","1500000"],["2–5 млн","3500000"],[">5 млн","8000000"]].forEach(([lab,val])=>{html+=`<label class="check-row"><input type="radio" name="valuePick" value="${val}"><span>Стоимость: ${lab}</span></label>`});if(needWeight)[["до 100 кг","50"],["100–500 кг","300"],["500–2000 кг","1000"],[">2 т","5000"]].forEach(([lab,val])=>{html+=`<label class="check-row"><input type="radio" name="weightPick" value="${val}"><span>Вес: ${lab}</span></label>`})}html+='<div class="clarify-actions"><button class="btn btn-primary" onclick="applyClarify()">Применить</button><button class="btn" onclick="cancelClarify()">Отмена</button></div></div>';box.innerHTML=html;aiState.pendingChecks={candidates}}
+function cancelClarify(){document.getElementById("clarifyBox").style.display="none";document.getElementById("chatInputRow").style.display="flex";aiMsg("bot","Ок. Добавьте детали или Excel.")}
+function applyClarify(){const codes=[...document.querySelectorAll('input[name="codePick"]:checked')].map(x=>x.value);const forms=[...document.querySelectorAll('input[name="formPick"]:checked')].map(x=>x.value);const valEl=document.querySelector('input[name="valuePick"]:checked');const wEl=document.querySelector('input[name="weightPick"]:checked');if(valEl)aiState.value=+valEl.value;if(wEl)aiState.weight=+wEl.value;if(forms.length)aiState.product+=" "+forms.join(", ");const bestCode=codes[0]||(aiState.candidates[0]&&aiState.candidates[0].code);if(bestCode){document.getElementById("codeInput").value=bestCode;const item=DB.find(x=>x.code===bestCode);if(item)document.getElementById("vatSelect").value=item.vat}if(aiState.value)document.getElementById("valueInput").value=aiState.value;if(aiState.weight)document.getElementById("weightInput").value=aiState.weight;document.getElementById("clarifyBox").style.display="none";document.getElementById("chatInputRow").style.display="flex";let reply="Принято";if(bestCode)reply+=`: <b>${bestCode}</b>`;aiMsg("bot",reply+".");if(bestCode&&aiState.value){aiMsg("bot","Считаю…");setTimeout(calculate,300)}else if(!aiState.value)showClarify(aiState.candidates.length?aiState.candidates:[{code:bestCode,name:"",confidence:.8}],true,!aiState.weight,false)}
+function aiSend(){const input=document.getElementById("aiInput");const text=input.value.trim();if(!text)return;input.value="";aiMsg("user",text);aiState.product=(aiState.product+" "+text).trim();const vm=text.match(/(\d[\d\s]{2,})/);const wm=text.match(/(\d+)\s*кг/i);if(vm)aiState.value=+String(vm[1]).replace(/\s/g,"");if(wm)aiState.weight=+wm[1];const candidates=findCandidates(aiState.product);aiState.candidates=candidates;if(!candidates.length){aiMsg("bot","Не найдено. Загрузите Excel.");return}let reply="<b>Варианты:</b><br>";candidates.forEach((c,i)=>{reply+=`${i+1}. <code style="color:var(--accent2)">${c.code}</code> — ${c.name.slice(0,50)} <span class="confidence">${Math.round(c.confidence*100)}%</span><br>`});aiMsg("bot",reply);const needCode=candidates.length>1,needValue=!aiState.value,needWeight=!aiState.weight,needForm=!/(обжар|готов|сыр|упаков)/i.test(aiState.product);if(needCode||needValue||needWeight||needForm){aiMsg("bot","Отметьте <b>галочками</b> ↓");showClarify(candidates,needValue,needWeight,needForm)}else{const best=candidates[0];document.getElementById("codeInput").value=best.code;document.getElementById("vatSelect").value=best.vat;document.getElementById("valueInput").value=aiState.value;if(aiState.weight)document.getElementById("weightInput").value=aiState.weight;aiMsg("bot",`Выбран <b>${best.code}</b>. Считаю…`);setTimeout(calculate,300)}}
+function handleFile(file){if(!file)return;const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});const h=rows[0].map(x=>String(x).toLowerCase());let cc=Math.max(0,h.findIndex(x=>x.includes("код")||x.includes("code")));let nc=h.findIndex(x=>x.includes("наимен")||x.includes("name"));if(nc<0)nc=1;let rc=h.findIndex(x=>x.includes("ставк")||x.includes("пошлин"));if(rc<0)rc=2;const data=[];for(let i=1;i<rows.length;i++){let code=String(rows[i][cc]||"").replace(/[\s.]/g,"");if(!/^\d{4,10}$/.test(code))continue;code=code.padEnd(10,"0").slice(0,10);const name=String(rows[i][nc]||"").slice(0,200);let rv=15;const m=String(rows[i][rc]||"").match(/(\d+)/);if(m)rv=+m[1];data.push({code,name,rate:rv+"%",rateType:"advalorem",rateValue:rv,vat:10,tags:[]})}if(data.length<10)throw new Error("Мало кодов");DB=data;document.getElementById("dbStatus").textContent=data.length.toLocaleString("ru-RU");document.getElementById("dbStatus").classList.add("on");document.getElementById("uploadMsg").innerHTML="✅ "+data.length;renderList(DB.slice(0,40))}catch(err){document.getElementById("uploadMsg").innerHTML="❌ "+err.message}};r.readAsArrayBuffer(file)}
+document.getElementById("dropZone").ondragover=e=>e.preventDefault();document.getElementById("dropZone").ondrop=e=>{e.preventDefault();e.dataTransfer.files[0]&&handleFile(e.dataTransfer.files[0])};document.getElementById("fileInput").onchange=()=>fileInput.files[0]&&handleFile(fileInput.files[0]);
+function toggleUpload(){const p=document.getElementById("uploadPanel");p.style.display=p.style.display==="none"?"block":"none"}
+buildTree();renderList(DB);aiReset();
+</script>
+</body>
+</html>
