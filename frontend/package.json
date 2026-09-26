@@ -1,0 +1,10 @@
+{
+  "name": "tnved-kalkulyator-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ТН ВЭД Калькулятор — frontend",
+  "scripts": {
+    "start": "npx --yes serve . -p 3000",
+    "dev": "npx --yes serve . -p 3000"
+  }
+}
