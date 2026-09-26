@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ТН ВЭД Калькулятор</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{--primary:#1a56db;--primary-dark:#1e40af;--success:#059669;--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);padding:12px}
+.container{max-width:1100px;margin:0 auto}header{background:linear-gradient(135deg,#1e40af,#3b82f6);color:#fff;padding:20px 24px;border-radius:14px;margin-bottom:16px}
+header h1{font-size:1.5rem}.status-bar{background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.9rem}
+.status-bar.loaded{background:#ecfdf5;border-color:#6ee7b7}.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:9px 16px;background:#fff;border:2px solid var(--border);border-radius:9px;cursor:pointer;font-weight:600;font-size:.9rem}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}.panel{display:none}.panel.active{display:block}
+.card{background:var(--card);border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid var(--border)}
+.card h2{font-size:1.15rem;margin-bottom:14px;color:var(--primary-dark)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:5px}
+input,select{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:.95rem}
+.btn{background:var(--primary);color:#fff;border:none;padding:11px 20px;border-radius:8px;font-weight:600;cursor:pointer}
+.btn-secondary{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.receipt{background:#fafafa;border:1px solid #e5e7eb;border-radius:16px;padding:24px 28px;margin-top:16px;max-width:420px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.receipt h3{text-align:center;font-size:1.05rem;margin-bottom:8px}.receipt .line{border-top:1px dashed #cbd5e1;margin:12px 0 18px}
+.receipt .row{display:flex;justify-content:space-between;padding:10px 0;font-size:.95rem}.receipt .row.total{font-weight:700;font-size:1.1rem}
+.receipt .note{margin-top:18px;font-size:.8rem;color:#64748b;line-height:1.45}
+.upload-zone{border:2px dashed #94a3b8;border-radius:12px;padding:32px 20px;text-align:center;background:#f8fafc;cursor:pointer}
+.upload-zone:hover{border-color:var(--primary);background:#eff6ff}.upload-zone input{display:none}
+.code-list{max-height:480px;overflow-y:auto;border:1px solid var(--border);border-radius:8px}
+.code-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer}.code-item:hover{background:#eff6ff}
+.code-item .code{font-weight:700;color:var(--primary);font-family:monospace}
+#aiChat{height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:14px;background:#f8fafc;margin-bottom:12px;font-size:.92rem}
+footer{text-align:center;padding:20px;color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<div class="container">
+<header><h1>ТН ВЭД Калькулятор</h1><p>Frontend • Excel • AI • ₸/₽</p></header>
+<div class="status-bar" id="statusBar"><span id="statusText">База не загружена — демо</span>
+<button class="btn btn-secondary" style="padding:6px 12px;font-size:.85rem" onclick="document.querySelector('[data-tab=upload]').click()">Загрузить Excel</button></div>
+<div class="tabs">
+<button class="tab active" data-tab="calc">Калькулятор</button>
+<button class="tab" data-tab="ai">AI-помощник</button>
+<button class="tab" data-tab="search">Поиск</button>
+<button class="tab" data-tab="upload">Загрузка Excel</button>
+<button class="tab" data-tab="about">Справка</button>
+</div>
+<div id="calc" class="panel active">
+<div class="card"><h2>Расчёт таможенных платежей</h2>
+<div class="form-grid">
+<div><label>Код ТН ВЭД</label><input type="text" id="codeInput" placeholder="2005202000"></div>
+<div><label>Таможенная стоимость</label><input type="number" id="valueInput" placeholder="150000"></div>
+<div><label>Вес нетто (кг)</label><input type="number" id="weightInput" placeholder="80"></div>
+<div><label>Страна</label><select id="countrySelect"><option value="OTHER">Третья страна</option><option value="EAEU">ЕАЭС (0%)</option><option value="CIS">СНГ</option></select></div>
+<div><label>НДС %</label><select id="vatSelect"><option value="20">20%</option><option value="10">10%</option><option value="0">0%</option></select></div>
+<div><label>Валюта</label><select id="currencySelect"><option value="KZT">₸ Тенге</option><option value="RUB">₽ Рубль</option></select></div>
+<div><label>Курс EUR</label><input type="number" id="eurRate" value="500"></div>
+</div>
+<button class="btn" onclick="calculate()">Рассчитать</button>
+<button class="btn btn-secondary" style="margin-left:6px" onclick="fillExample()">Пример (чипсы)</button>
+<div id="calcResults" style="display:none"><div id="resultContent"></div>
+<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn btn-secondary" style="padding:8px 14px;font-size:.85rem" onclick="exportCalcCSV()">Экспорт CSV</button>
+<button class="btn btn-secondary" style="padding:8px 14px;font-size:.85rem" onclick="copyCalcResult()">Копировать</button>
+</div></div></div>
+<div class="card" id="codeInfoCard" style="display:none"><h2>Информация по коду</h2><div id="codeInfo"></div></div>
+</div>
+<div id="ai" class="panel">
+<div class="card"><h2>AI-помощник</h2>
+<p style="font-size:.9rem;color:var(--muted);margin-bottom:12px">Опишите товар — подберём код и посчитаем пошлину + сбор + НДС.</p>
+<div id="aiChat"></div>
+<div style="display:flex;gap:8px"><input type="text" id="aiInput" placeholder="чипсы из Китая, 500 кг, 180000 тенге..." style="flex:1;padding:11px 14px;border:2px solid var(--border);border-radius:8px" onkeydown="if(event.key==='Enter')aiSend()">
+<button class="btn" onclick="aiSend()">Отправить</button></div>
+<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-secondary" style="padding:6px 12px;font-size:.8rem" onclick="aiExample('chips')">Пример: чипсы</button>
+<button class="btn btn-secondary" style="padding:6px 12px;font-size:.8rem" onclick="aiReset()">Сбросить</button>
+</div></div>
+<div class="card" id="aiCalcCard" style="display:none"><h2>Расчёт</h2><div id="aiCalcResult"></div>
+<button class="btn btn-secondary" style="margin-top:12px;padding:8px 14px;font-size:.85rem" onclick="exportAiCSV()">Экспорт CSV</button>
+</div></div>
+<div id="search" class="panel">
+<div class="card"><h2>Поиск <span id="searchCount"></span></h2>
+<input type="text" id="searchInput" placeholder="Код или название" oninput="debounceSearch()" style="width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;margin-bottom:12px">
+<div class="code-list" id="codeList"></div></div></div>
+<div id="upload" class="panel">
+<div class="card"><h2>Загрузка Excel</h2>
+<p style="margin-bottom:12px;font-size:.9rem"><a href="https://www.tws.by/tws/tnved/download" target="_blank">Скачать базу tws.by</a></p>
+<div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+<div style="font-size:2.5rem">📄</div><div style="font-weight:600">Перетащите tnved.xlsx</div>
+<input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+</div><div id="uploadResult" style="margin-top:14px"></div></div></div>
+<div id="about" class="panel">
+<div class="card"><h2>Справка</h2>
+<ol style="margin-left:18px"><li>Скачайте Excel с tws.by</li><li>Загрузите во вкладке «Загрузка Excel»</li><li>Считайте платежи</li></ol>
+<p style="margin-top:12px;font-size:.9rem">Расчёт базовый. Возможны доп. тарифные меры и преференции.</p></div></div>
+<footer>ТН ВЭД Frontend • <a href="https://github.com/eldiyar1710/otter-beacon-heart-birch-">GitHub</a></footer>
+</div>
+<script>
+const DEMO_DB=[{code:"2005202000",name:"Чипсы/криспы картофельные",rate:"15%",rateType:"advalorem",rateValue:15,vat:10},{code:"1905905500",name:"Экструдированные снеки",rate:"15%",rateType:"advalorem",rateValue:15,vat:10},{code:"1905100000",name:"Хрустящие хлебцы",rate:"15%",rateType:"combined",rateValue:15,specific:0.15,vat:10},{code:"2104100000",name:"Супы и бульоны",rate:"15%",rateType:"advalorem",rateValue:15,vat:10},{code:"8470100000",name:"Калькуляторы",rate:"0%",rateType:"advalorem",rateValue:0,vat:20}];
+let TNVED_DB=[...DEMO_DB],lastCalcData=null,lastAiCalc=null,searchTimeout=null;
+let aiState={product:"",country:"OTHER",value:0,weight:0,selectedCode:null};
+function getCurrency(){return (document.getElementById("currencySelect")||{}).value||"KZT"}
+function getCurrencySymbol(){return getCurrency()==="RUB"?"₽":"₸"}
+function getCustomsFee(v){if(getCurrency()==="RUB"){if(v<=200000)return 1231;if(v<=450000)return 2462;if(v<=1200000)return 4924;if(v<=2700000)return 13541;return 18465}if(v<=500000)return 5000;if(v<=2000000)return 15000;if(v<=5000000)return 25950;return 45000}
+function formatMoney(n){return Math.round(n).toLocaleString("ru-RU")+" "+getCurrencySymbol()}
+function renderReceipt(duty,fee,vat,total){return '<div class="receipt"><h3>Таможенные платежи и налоги</h3><div class="line"></div><div class="row"><span>Таможенный сбор</span><span>'+formatMoney(fee)+'</span></div><div class="row"><span>Импортная пошлина</span><span>'+formatMoney(duty)+'</span></div><div class="row"><span>НДС</span><span>'+formatMoney(vat)+'</span></div><div class="row total"><span>ИТОГО*:</span><span>'+formatMoney(total)+'</span></div><div class="note">* Приведённый расчёт является базовым.<br>Товар может попадать под дополнительные<br><span style="color:#2563eb">тарифные меры и преференции</span>.</div></div>'}
+function findCode(code){code=String(code).replace(/\s/g,"");return TNVED_DB.find(i=>i.code===code||i.code.startsWith(code))}
+function updateStatus(){const n=TNVED_DB.length;document.getElementById("statusBar").className=n>100?"status-bar loaded":"status-bar";document.getElementById("statusText").textContent=n>100?"✅ Загружено "+n.toLocaleString("ru-RU")+" кодов":"База не загружена — демо ("+n+")";document.getElementById("searchCount").textContent="("+n+")"}
+function calculate(){const code=document.getElementById("codeInput").value.replace(/\s/g,"");const value=parseFloat(document.getElementById("valueInput").value)||0;const weight=parseFloat(document.getElementById("weightInput").value)||0;const country=document.getElementById("countrySelect").value;const vatRate=parseFloat(document.getElementById("vatSelect").value)||20;const eur=parseFloat(document.getElementById("eurRate").value)||500;if(!code||value<=0){alert("Укажите код и стоимость");return}const item=findCode(code);let duty=0;if(country==="EAEU")duty=0;else if(item&&item.rateType==="advalorem")duty=value*(item.rateValue/100);else if(item&&item.rateType==="combined")duty=Math.max(value*(item.rateValue/100),(item.specific||0)*weight*eur);else duty=value*0.15;const fee=getCustomsFee(value);const vat=(value+duty+fee)*(vatRate/100);const total=duty+fee+vat;lastCalcData={code,value,duty:+duty.toFixed(2),fee,vat:+vat.toFixed(2),total:+total.toFixed(2)};document.getElementById("calcResults").style.display="block";document.getElementById("resultContent").innerHTML=renderReceipt(duty,fee,vat,total);if(item){document.getElementById("codeInfoCard").style.display="block";document.getElementById("codeInfo").innerHTML="<p><b>"+item.code+"</b> "+item.name+"</p><p>Ставка: "+item.rate+"</p>"}}
+function fillExample(){document.getElementById("codeInput").value="2005202000";document.getElementById("valueInput").value="3500000";document.getElementById("weightInput").value="500";document.getElementById("vatSelect").value="10";document.getElementById("currencySelect").value="KZT";calculate()}
+function downloadBlob(c,f,m){const b=new Blob([c],{type:m});const u=URL.createObjectURL(b);const a=document.createElement("a");a.href=u;a.download=f;a.click();URL.revokeObjectURL(u)}
+function exportCalcCSV(){if(!lastCalcData)return;const d=lastCalcData;downloadBlob("\uFEFFКод;"+d.code+"\nПошлина;"+d.duty+"\nСбор;"+d.fee+"\nНДС;"+d.vat+"\nИТОГО;"+d.total,"calc.csv","text/csv;charset=utf-8")}
+function copyCalcResult(){if(!lastCalcData)return;const d=lastCalcData;navigator.clipboard.writeText("ИТОГО "+d.total).then(()=>alert("Скопировано"))}
+function handleFile(file){if(!file)return;const r=new FileReader();r.onload=function(e){try{const wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});const h=rows[0].map(x=>String(x).toLowerCase());let cc=h.findIndex(x=>x.includes("код")||x.includes("code"));let nc=h.findIndex(x=>x.includes("наимен")||x.includes("name"));let rc=h.findIndex(x=>x.includes("ставк")||x.includes("пошлин"));if(cc<0)cc=0;if(nc<0)nc=1;if(rc<0)rc=2;const data=[];for(let i=1;i<rows.length;i++){let code=String(rows[i][cc]||"").replace(/[\s.]/g,"");if(!/^\d{4,10}$/.test(code))continue;code=code.padEnd(10,"0").slice(0,10);const name=String(rows[i][nc]||"").slice(0,200);let rateValue=15;const m=String(rows[i][rc]||"").match(/(\d+)/);if(m)rateValue=+m[1];data.push({code,name,rate:rateValue+"%",rateType:"advalorem",rateValue,vat:10})}if(data.length<10)throw new Error("Мало кодов");TNVED_DB=data;document.getElementById("uploadResult").innerHTML="<b style=color:#059669>✅ "+data.length.toLocaleString("ru-RU")+" кодов</b>";updateStatus();searchCodes()}catch(err){document.getElementById("uploadResult").innerHTML="<span style=color:#dc2626>❌ "+err.message+"</span>"}};r.readAsArrayBuffer(file)}
+document.getElementById("dropZone").addEventListener("drop",e=>{e.preventDefault();if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});document.getElementById("dropZone").addEventListener("dragover",e=>e.preventDefault());document.getElementById("fileInput").addEventListener("change",()=>{if(fileInput.files[0])handleFile(fileInput.files[0])});
+function debounceSearch(){clearTimeout(searchTimeout);searchTimeout=setTimeout(searchCodes,180)}
+function searchCodes(){const q=document.getElementById("searchInput").value.toLowerCase().trim();const list=document.getElementById("codeList");list.innerHTML="";const f=(!q?TNVED_DB.slice(0,50):TNVED_DB.filter(i=>i.code.includes(q)||(i.name||"").toLowerCase().includes(q))).slice(0,100);f.forEach(item=>{const d=document.createElement("div");d.className="code-item";d.innerHTML="<div class=code>"+item.code+"</div><div>"+(item.name||"").slice(0,70)+"</div>";d.onclick=()=>{document.getElementById("codeInput").value=item.code;document.querySelector("[data-tab=calc]").click()};list.appendChild(d)})}
+function aiAddMsg(role,text){const c=document.getElementById("aiChat");const d=document.createElement("div");d.style.cssText="margin-bottom:10px;padding:10px;border-radius:10px;max-width:90%;"+(role==="user"?"background:#dbeafe;margin-left:auto":"background:#fff;border:1px solid #e2e8f0");d.innerHTML=text;c.appendChild(d);c.scrollTop=c.scrollHeight}
+function aiReset(){aiState={product:"",country:"OTHER",value:0,weight:0,selectedCode:null};document.getElementById("aiChat").innerHTML="";document.getElementById("aiCalcCard").style.display="none";aiAddMsg("bot","Опишите товар (название, страна, стоимость, вес).")}
+function aiExample(){document.getElementById("aiInput").value="Картофельные чипсы из Китая, 500 кг, 3500000 тенге";aiSend()}
+function aiSend(){const input=document.getElementById("aiInput");const text=input.value.trim();if(!text)return;input.value="";aiAddMsg("user",text);aiState.product=(aiState.product+" "+text).trim();const vm=text.match(/(\d[\d\s]{2,})/);const wm=text.match(/(\d+)\s*кг/i);if(vm)aiState.value=parseFloat(String(vm[1]).replace(/\s/g,""));if(wm)aiState.weight=+wm[1];const t=aiState.product.toLowerCase();let codes=[];if(/чип|крисп|chips/.test(t))codes=TNVED_DB.filter(i=>/чип|ломтик|экструд|2005|1905/.test(i.code+i.name));else if(/бульон|суп/.test(t))codes=TNVED_DB.filter(i=>/бульон|суп|2104/.test(i.code+i.name));else codes=TNVED_DB.slice(0,3);if(codes.length)aiState.selectedCode=codes[0];let reply="Товар: "+aiState.product.slice(0,80);if(codes[0])reply+="<br>Код: <b>"+codes[0].code+"</b>";if(!aiState.value){aiAddMsg("bot",reply+"<br>Укажите стоимость.");return}aiAddMsg("bot",reply+"<br>Считаю…");setTimeout(()=>{const item=aiState.selectedCode||DEMO_DB[0];const value=aiState.value;let duty=value*((item.rateValue||15)/100);const fee=getCustomsFee(value);const vat=(value+duty+fee)*((item.vat||10)/100);const total=duty+fee+vat;lastAiCalc={code:item.code,duty,fee,vat,total};document.getElementById("aiCalcResult").innerHTML=renderReceipt(duty,fee,vat,total);document.getElementById("aiCalcCard").style.display="block";aiAddMsg("bot","<b>ИТОГО "+formatMoney(total)+"</b>")},300)}
+function exportAiCSV(){if(!lastAiCalc)return;const d=lastAiCalc;downloadBlob("\uFEFFКод;"+d.code+"\nИТОГО;"+d.total,"ai.csv","text/csv;charset=utf-8")}
+document.querySelectorAll(".tab").forEach(tab=>{tab.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));tab.classList.add("active");document.getElementById(tab.dataset.tab).classList.add("active");if(tab.dataset.tab==="search")searchCodes()})});
+aiReset();updateStatus();searchCodes();
+</script>
+</body>
+</html>
