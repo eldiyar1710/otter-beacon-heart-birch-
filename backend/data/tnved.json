@@ -1,0 +1,12 @@
+[
+  {"code": "2005202000", "name": "Картофель нарезанный тонкими ломтиками (чипсы/криспы)", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 10},
+  {"code": "1905905500", "name": "Экструдированные продукты острые/солёные", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 10},
+  {"code": "1905100000", "name": "Хрустящие хлебцы (crispbread)", "rate": "15%, не менее 0.15 евро/кг", "rateType": "combined", "rateValue": 15, "specific": 0.15, "vat": 10},
+  {"code": "2104100000", "name": "Супы и бульоны и заготовки для них", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 10},
+  {"code": "2104200000", "name": "Гомогенизированные составные пищевые продукты", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 10},
+  {"code": "2005201000", "name": "Картофель в виде муки, хлопьев", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 10},
+  {"code": "0901210000", "name": "Кофе жареный с кофеином", "rate": "10%", "rateType": "advalorem", "rateValue": 10, "vat": 20},
+  {"code": "8470100000", "name": "Калькуляторы электронные", "rate": "0%", "rateType": "advalorem", "rateValue": 0, "vat": 20},
+  {"code": "1704909900", "name": "Прочие кондитерские изделия из сахара", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 20},
+  {"code": "2202100000", "name": "Воды газированные с сахаром", "rate": "15%", "rateType": "advalorem", "rateValue": 15, "vat": 20}
+]
